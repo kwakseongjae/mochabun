@@ -24,33 +24,38 @@ function ensureAuthListener() {
 
   const supabase = getSupabase();
 
-  supabase.auth.getSession().then(({ data: { session } }) => {
+  // getSession() 별도 호출 제거 - INITIAL_SESSION 이벤트로 통합
+  // onAuthStateChange가 구독 즉시 INITIAL_SESSION을 발생시켜 초기 세션을 전달
+  supabase.auth.onAuthStateChange((event, session) => {
     _isLoggedIn = !!session;
-    window.dispatchEvent(
-      new CustomEvent("authStateChanged", {
-        detail: { isLoggedIn: !!session },
-      }),
-    );
-  });
 
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    _isLoggedIn = !!session;
-    window.dispatchEvent(
-      new CustomEvent("authStateChanged", {
-        detail: { isLoggedIn: !!session },
-      }),
-    );
+    if (
+      event === "INITIAL_SESSION" ||
+      event === "SIGNED_IN" ||
+      event === "SIGNED_OUT" ||
+      event === "TOKEN_REFRESHED"
+    ) {
+      window.dispatchEvent(
+        new CustomEvent("authStateChanged", {
+          detail: { isLoggedIn: !!session },
+        }),
+      );
+    }
 
-    // 로그인 시 마지막 선택한 팀스페이스 불러오기
+    // onAuthStateChange 콜백 내 직접 await 사용 금지 (데드락 위험)
+    // setTimeout으로 다음 이벤트 루프 틱에서 실행
     if (event === "SIGNED_IN" && session) {
-      try {
-        const { lastSelectedTeamSpaceId } = await getLastSelectedTeamSpaceApi();
-        if (lastSelectedTeamSpaceId && typeof window !== "undefined") {
-          localStorage.setItem("currentTeamSpaceId", lastSelectedTeamSpaceId);
+      setTimeout(async () => {
+        try {
+          const { lastSelectedTeamSpaceId } =
+            await getLastSelectedTeamSpaceApi();
+          if (lastSelectedTeamSpaceId && typeof window !== "undefined") {
+            localStorage.setItem("currentTeamSpaceId", lastSelectedTeamSpaceId);
+          }
+        } catch {
+          // 실패해도 로그인은 계속 진행
         }
-      } catch {
-        // 실패해도 로그인은 계속 진행
-      }
+      }, 0);
     }
   });
 }

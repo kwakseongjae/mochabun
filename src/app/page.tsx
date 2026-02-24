@@ -30,6 +30,7 @@ import {
   getInterviewTypesApi,
   type ApiInterviewType,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { TeamSpaceSelector } from "@/components/TeamSpaceSelector";
 import { TeamSpaceIntro } from "@/components/TeamSpaceIntro";
 import { validateInterviewInput } from "@/lib/validation";
@@ -50,6 +51,7 @@ const SAMPLE_PROMPTS = [
 
 export default function Home() {
   const router = useRouter();
+  const { loggedIn } = useAuth();
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<{ nickname: string | null } | null>(null);
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
@@ -89,7 +91,7 @@ export default function Home() {
   useEffect(() => {
     // 로그인 상태 확인 후 마지막 선택한 팀스페이스 불러오기
     const loadLastSelectedTeamSpace = async () => {
-      if (isLoggedIn()) {
+      if (loggedIn) {
         try {
           const { lastSelectedTeamSpaceId } =
             await getLastSelectedTeamSpaceApi();
@@ -130,7 +132,7 @@ export default function Home() {
     };
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [loggedIn]);
 
   // 팀스페이스 ID가 변경될 때마다 role 확인
   useEffect(() => {
@@ -162,7 +164,7 @@ export default function Home() {
 
   useEffect(() => {
     const loadUser = async () => {
-      if (isLoggedIn()) {
+      if (loggedIn) {
         try {
           const currentUser = await getCurrentUser();
           setUser(currentUser);
@@ -175,7 +177,7 @@ export default function Home() {
       setIsLoadingUser(false);
     };
     loadUser();
-  }, []);
+  }, [loggedIn]);
 
   const handleLogout = async () => {
     try {

@@ -177,4 +177,41 @@
 
 ---
 
-**마지막 업데이트**: 2026-02-09
+---
+
+### 2026-02-24: [Auth] Supabase OAuth 콜백에서 쿠키를 redirect 응답에 바인딩 필요
+
+- **실수**: `createClient()`(next/headers 기반)로 `exchangeCodeForSession()` 후 `NextResponse.redirect()`를 별도 생성하면 세션 쿠키가 응답에 포함되지 않음
+- **원인**: `server.ts`의 `setAll`이 `try-catch`로 에러를 무음 처리하고, `NextResponse.redirect()`는 새 Response 객체여서 쿠키가 전달되지 않음
+- **규칙**:
+  - OAuth 콜백 route handler에서는 `createServerClient`를 직접 생성
+  - `NextResponse.redirect(response)`를 먼저 생성한 뒤, `setAll`에서 `response.cookies.set()`으로 직접 바인딩
+  - `exchangeCodeForSession()` 완료 후 해당 response를 반환
+- **참조**: #35, `src/app/auth/callback/route.ts`
+
+---
+
+### 2026-02-24: [Auth] useEffect 의존성 배열에 loggedIn 포함 필수
+
+- **실수**: `page.tsx`에서 `loadUser` useEffect의 deps를 `[]`로 설정 → 마운트 시 `isLoggedIn() = false`여서 `user = null`로 설정, 이후 `INITIAL_SESSION` 이벤트가 발생해도 effect 재실행 안 됨
+- **원인**: `isLoggedIn()`은 동기 함수이고 `INITIAL_SESSION`은 비동기로 발화 → 마운트 시점에는 항상 `false`
+- **규칙**:
+  - 로그인 상태에 따라 데이터를 fetch하는 useEffect는 반드시 `[loggedIn]` deps 포함
+  - `isLoggedIn()` 직접 호출 대신 `useAuth()` 훅의 `loggedIn` 반응형 값 사용
+  - `loggedIn = false` 초기값 → `INITIAL_SESSION` 이후 `true` → effect 재실행 패턴 적용
+- **참조**: #35, `src/app/page.tsx`
+
+---
+
+### 2026-02-24: [Auth] Supabase Redirect URLs에 와일드카드 필요 (로컬 개발)
+
+- **실수**: Supabase Redirect URLs에 `http://localhost:3000/auth/callback`(정확한 URL)만 등록 → `?next=/` 쿼리 파라미터가 포함된 실제 redirectTo URL과 매칭 실패 → Site URL(프로덕션)로 폴백
+- **원인**: `signInWithGoogle`에서 `callbackUrl`에 `?next=...` 쿼리 파라미터를 포함하는데, 정확한 URL 매칭 실패
+- **규칙**:
+  - 로컬 개발 환경은 `http://localhost:3000/**` 와일드카드로 등록
+  - 프로덕션은 정확한 URL(`https://www.mochabun.co.kr/auth/callback`) 유지
+- **참조**: #35, Supabase Dashboard → Authentication → URL Configuration
+
+---
+
+**마지막 업데이트**: 2026-02-24

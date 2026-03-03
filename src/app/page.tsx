@@ -27,14 +27,17 @@ import {
   getCurrentUser,
   signOut,
   getLastSelectedTeamSpaceApi,
-  getInterviewTypesApi,
-  type ApiInterviewType,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { TeamSpaceSelector } from "@/components/TeamSpaceSelector";
 import { TeamSpaceIntro } from "@/components/TeamSpaceIntro";
 import { validateInterviewInput } from "@/lib/validation";
-import { InterviewTypeSelector } from "@/components/InterviewTypeSelector";
+import {
+  InterviewTypePopoverSelector,
+  SelectedInterviewTypePill,
+} from "@/components/InterviewTypeSelector";
+import { getInterviewTypeByCode } from "@/data/interview-types";
+import type { InterviewTypeCode } from "@/types/interview";
 import {
   TrendTopicSelector,
   SelectedTrendPill,
@@ -73,28 +76,10 @@ export default function Home() {
     "owner" | "member" | null
   >(null);
   const [inputWarning, setInputWarning] = useState<string | null>(null);
-  const [interviewTypes, setInterviewTypes] = useState<ApiInterviewType[]>([]);
-  const [selectedInterviewTypeId, setSelectedInterviewTypeId] = useState<
-    string | null
-  >(null);
-  const [isLoadingInterviewTypes, setIsLoadingInterviewTypes] = useState(true);
+  const [selectedInterviewTypeCode, setSelectedInterviewTypeCode] =
+    useState<InterviewTypeCode | null>(null);
   const [selectedTrendTopic, setSelectedTrendTopic] =
     useState<TrendTopic | null>(null);
-
-  // 면접 범주 로드
-  useEffect(() => {
-    const loadInterviewTypes = async () => {
-      try {
-        const response = await getInterviewTypesApi();
-        setInterviewTypes(response.interviewTypes);
-      } catch (error) {
-        console.error("면접 범주 로드 실패:", error);
-      } finally {
-        setIsLoadingInterviewTypes(false);
-      }
-    };
-    loadInterviewTypes();
-  }, []);
 
   useEffect(() => {
     // 로그인 상태 확인 후 마지막 선택한 팀스페이스 불러오기
@@ -423,14 +408,8 @@ export default function Home() {
       }
 
       // 면접 범주가 선택되어 있으면 전달
-      if (selectedInterviewTypeId) {
-        const selectedType = interviewTypes.find(
-          (t) => t.id === selectedInterviewTypeId,
-        );
-        if (selectedType) {
-          params.append("interview_type", selectedType.code);
-          params.append("interview_type_id", selectedInterviewTypeId);
-        }
+      if (selectedInterviewTypeCode) {
+        params.append("interview_type", selectedInterviewTypeCode);
       }
 
       // 트렌드 토픽이 선택되어 있으면 전달
@@ -466,14 +445,8 @@ export default function Home() {
 
     // 면접 범주가 선택되어 있으면 전달
     const params = new URLSearchParams({ q: sample });
-    if (selectedInterviewTypeId) {
-      const selectedType = interviewTypes.find(
-        (t) => t.id === selectedInterviewTypeId,
-      );
-      if (selectedType) {
-        params.append("interview_type", selectedType.code);
-        params.append("interview_type_id", selectedInterviewTypeId);
-      }
+    if (selectedInterviewTypeCode) {
+      params.append("interview_type", selectedInterviewTypeCode);
     }
 
     // 트렌드 토픽이 선택되어 있으면 전달
@@ -574,30 +547,6 @@ export default function Home() {
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           className="w-full max-w-2xl"
         >
-          {/* Interview Type Selector - 채팅창 위에 배치 */}
-          <div className="mb-3 md:mb-4">
-            <p className="text-xs md:text-sm text-muted-foreground mb-2 text-center">
-              면접 범주 선택 (선택사항)
-            </p>
-            {isLoadingInterviewTypes ? (
-              <div className="flex flex-wrap justify-center gap-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-10 w-24 rounded-full bg-muted/50 animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : (
-              <InterviewTypeSelector
-                interviewTypes={interviewTypes}
-                selectedTypeId={selectedInterviewTypeId}
-                onSelect={setSelectedInterviewTypeId}
-                disabled={isUploading}
-              />
-            )}
-          </div>
-
           {/* Search Form */}
           <form onSubmit={handleSubmit}>
             <div
@@ -625,13 +574,27 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {/* 선택된 트렌드 토픽 Pill (검색창 상단) */}
-              {selectedTrendTopic && (
-                <div className="px-3 pt-2.5 md:px-5 md:pt-3">
-                  <SelectedTrendPill
-                    topic={selectedTrendTopic}
-                    onRemove={() => setSelectedTrendTopic(null)}
-                  />
+              {/* 선택된 면접 범주 / 트렌드 토픽 Pill (검색창 상단) */}
+              {(selectedInterviewTypeCode || selectedTrendTopic) && (
+                <div className="px-3 pt-2.5 md:px-5 md:pt-3 flex items-center gap-1.5 flex-wrap">
+                  {selectedInterviewTypeCode &&
+                    (() => {
+                      const type = getInterviewTypeByCode(
+                        selectedInterviewTypeCode,
+                      );
+                      return type ? (
+                        <SelectedInterviewTypePill
+                          type={type}
+                          onRemove={() => setSelectedInterviewTypeCode(null)}
+                        />
+                      ) : null;
+                    })()}
+                  {selectedTrendTopic && (
+                    <SelectedTrendPill
+                      topic={selectedTrendTopic}
+                      onRemove={() => setSelectedTrendTopic(null)}
+                    />
+                  )}
                 </div>
               )}
               <div className="flex items-center px-3 py-2.5 md:px-5 md:py-4 gap-2 md:gap-4">
@@ -753,8 +716,14 @@ export default function Home() {
                       className="hidden"
                     />
 
-                    {/* File count + Trend Topic */}
+                    {/* File count + 면접 범주 + Trend Topic */}
                     <div className="ml-auto flex items-center gap-3">
+                      <InterviewTypePopoverSelector
+                        selectedTypeCode={selectedInterviewTypeCode}
+                        onSelect={setSelectedInterviewTypeCode}
+                        disabled={isUploading}
+                      />
+                      <span className="text-border/60">|</span>
                       <TrendTopicSelector
                         selectedTopic={selectedTrendTopic}
                         onSelect={handleTrendTopicSelect}
@@ -768,7 +737,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Reference Files Upload (when no files) + Trend Topic Selector */}
+              {/* Reference Files Upload (when no files) + 면접 범주 + Trend Topic Selector */}
               {referenceFiles.length === 0 && (
                 <div className="px-3 pb-2 md:px-5 md:pb-3 border-t border-border/30">
                   <div className="flex items-center gap-3 md:gap-4 pt-2 md:pt-3">
@@ -791,6 +760,12 @@ export default function Home() {
                       multiple
                       onChange={handleFileSelect}
                       className="hidden"
+                    />
+                    <span className="text-border/60">|</span>
+                    <InterviewTypePopoverSelector
+                      selectedTypeCode={selectedInterviewTypeCode}
+                      onSelect={setSelectedInterviewTypeCode}
+                      disabled={isUploading}
                     />
                     <span className="text-border/60">|</span>
                     <TrendTopicSelector

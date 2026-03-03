@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Brain,
@@ -7,11 +8,21 @@ import {
   Network,
   BookOpen,
   Check,
-  Sparkles,
+  ChevronDown,
+  LayoutGrid,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ApiInterviewType } from "@/lib/api";
-import { useIsMobile } from "@/hooks/useMediaQuery";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  INTERVIEW_TYPES,
+  type StaticInterviewType,
+} from "@/data/interview-types";
+import type { InterviewTypeCode } from "@/types/interview";
 
 // 아이콘 매핑
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -67,152 +78,187 @@ const COLOR_MAP: Record<
   },
 };
 
-interface InterviewTypeSelectorProps {
-  interviewTypes: ApiInterviewType[];
-  selectedTypeId: string | null;
-  onSelect: (typeId: string | null) => void;
+// ── 입력창 하단 툴바에 배치되는 면접 범주 선택 트리거 + Popover ──
+interface InterviewTypePopoverSelectorProps {
+  selectedTypeCode: InterviewTypeCode | null;
+  onSelect: (typeCode: InterviewTypeCode | null) => void;
   disabled?: boolean;
 }
 
-export function InterviewTypeSelector({
-  interviewTypes,
-  selectedTypeId,
+export function InterviewTypePopoverSelector({
+  selectedTypeCode,
   onSelect,
   disabled = false,
-}: InterviewTypeSelectorProps) {
-  const isMobile = useIsMobile();
+}: InterviewTypePopoverSelectorProps) {
+  const [open, setOpen] = useState(false);
 
-  const handleSelect = (typeId: string) => {
+  const selectedType = selectedTypeCode
+    ? INTERVIEW_TYPES.find((t) => t.code === selectedTypeCode)
+    : null;
+  const selectedColors = selectedType
+    ? (COLOR_MAP[selectedType.color] ?? COLOR_MAP.blue)
+    : null;
+  const SelectedIcon = selectedType
+    ? (ICON_MAP[selectedType.icon] ?? Brain)
+    : null;
+
+  const handleSelect = (code: InterviewTypeCode) => {
     if (disabled) return;
-    // 같은 타입 클릭 시 선택 해제
-    if (selectedTypeId === typeId) {
-      onSelect(null);
-    } else {
-      onSelect(typeId);
-    }
+    // 같은 범주 클릭 시 선택 해제
+    onSelect(selectedTypeCode === code ? null : code);
+    setOpen(false);
   };
 
-  // 모바일: 줄바꿈되는 칩 형태 (체크 아이콘 없이 배경/테두리로 선택 표시)
-  if (isMobile) {
-    return (
-      <div className="flex flex-wrap justify-center gap-2">
-        {interviewTypes.map((type) => {
-          const isSelected = selectedTypeId === type.id;
-          const IconComponent = ICON_MAP[type.icon || "Brain"] || Brain;
-          const colors = COLOR_MAP[type.color || "blue"] || COLOR_MAP.blue;
-
-          return (
-            <button
-              key={type.id}
-              type="button"
-              onClick={() => handleSelect(type.id)}
-              disabled={disabled}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 rounded-full border-2 transition-colors min-h-[40px]",
-                "focus:outline-none focus-visible:outline-none",
-                disabled && "opacity-50 cursor-not-allowed",
-                isSelected
-                  ? `${colors.selectedBg} ${colors.border} ${colors.text} shadow-sm`
-                  : "bg-card border-border/40 text-foreground hover:border-border hover:bg-muted/50",
-              )}
-            >
-              <IconComponent
-                className={cn(
-                  "w-4 h-4 flex-shrink-0",
-                  !isSelected && colors.text, // 미선택 시에도 아이콘에 색상
-                )}
-              />
-              <span className="text-sm font-medium">{type.displayName}</span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // 데스크톱: 기존 카드 레이아웃
   return (
-    <div className="grid grid-cols-3 gap-3">
-      {interviewTypes.map((type) => {
-        const isSelected = selectedTypeId === type.id;
-        const IconComponent = ICON_MAP[type.icon || "Brain"] || Brain;
-        const colors = COLOR_MAP[type.color || "blue"] || COLOR_MAP.blue;
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "flex items-center gap-1.5 text-xs md:text-sm transition-colors",
+            "focus:outline-none focus-visible:outline-none",
+            disabled && "opacity-50 cursor-not-allowed",
+            selectedType && selectedColors
+              ? selectedColors.text
+              : "text-muted-foreground hover:text-foreground cursor-pointer",
+          )}
+        >
+          {selectedType && SelectedIcon && selectedColors ? (
+            <SelectedIcon
+              className={cn("w-3.5 h-3.5 md:w-4 md:h-4", selectedColors.text)}
+            />
+          ) : (
+            <LayoutGrid className="w-3.5 h-3.5 md:w-4 md:h-4" />
+          )}
+          <span>{selectedType ? selectedType.displayName : "면접 범주"}</span>
+          <ChevronDown className="w-3 h-3 text-muted-foreground/60" />
+        </button>
+      </PopoverTrigger>
 
-        return (
-          <motion.button
-            key={type.id}
-            type="button"
-            onClick={() => handleSelect(type.id)}
-            disabled={disabled}
-            className={cn(
-              "relative flex flex-col items-start text-left p-4 rounded-xl border-2 transition-all duration-200",
-              "focus:outline-none focus-visible:outline-none",
-              disabled && "opacity-50 cursor-not-allowed",
-              isSelected
-                ? `${colors.selectedBg} ${colors.border} shadow-md`
-                : `bg-card border-border/50 ${colors.hoverBorder} hover:shadow-sm`,
-            )}
-          >
-            {/* 선택 표시 */}
-            {isSelected && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className={cn(
-                  "absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center",
-                  colors.bg,
-                  colors.text,
-                )}
-              >
-                <Check className="w-3.5 h-3.5" strokeWidth={3} />
-              </motion.div>
-            )}
+      <PopoverContent
+        align="start"
+        className="w-[calc(100vw-2rem)] max-w-[480px] p-3"
+        sideOffset={8}
+      >
+        <div className="space-y-2.5">
+          <p className="text-xs text-muted-foreground">
+            선택한 범주에 맞게 AI 면접 질문이 특화됩니다
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {INTERVIEW_TYPES.map((type) => {
+              const isSelected = selectedTypeCode === type.code;
+              const IconComponent = ICON_MAP[type.icon] ?? Brain;
+              const colors = COLOR_MAP[type.color] ?? COLOR_MAP.blue;
 
-            {/* 아이콘 */}
-            <div
-              className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center mb-3",
-                colors.bg,
-              )}
-            >
-              <IconComponent className={cn("w-5 h-5", colors.text)} />
-            </div>
+              return (
+                <motion.button
+                  key={type.code}
+                  type="button"
+                  onClick={() => handleSelect(type.code)}
+                  whileTap={{ scale: 0.97 }}
+                  className={cn(
+                    "relative flex flex-col items-start text-left p-3 rounded-xl border-2 transition-all duration-150",
+                    "focus:outline-none focus-visible:outline-none",
+                    isSelected
+                      ? `${colors.selectedBg} ${colors.border}`
+                      : "bg-card border-border/40 hover:border-border/70 hover:bg-muted/30",
+                  )}
+                >
+                  {/* 선택 체크 */}
+                  {isSelected && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className={cn(
+                        "absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center",
+                        colors.bg,
+                        colors.text,
+                      )}
+                    >
+                      <Check className="w-3 h-3" strokeWidth={3} />
+                    </motion.div>
+                  )}
 
-            {/* 제목 */}
-            <h3
-              className={cn(
-                "text-base font-semibold mb-1",
-                isSelected ? colors.text : "text-foreground",
-              )}
-            >
-              {type.displayName}
-            </h3>
+                  {/* 아이콘 */}
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center mb-2",
+                      colors.bg,
+                    )}
+                  >
+                    <IconComponent className={cn("w-4 h-4", colors.text)} />
+                  </div>
 
-            {/* 설명 - 전체 표시 */}
-            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-              {type.description}
-            </p>
+                  {/* 제목 */}
+                  <span
+                    className={cn(
+                      "text-sm font-semibold mb-1",
+                      isSelected ? colors.text : "text-foreground",
+                    )}
+                  >
+                    {type.displayName}
+                  </span>
 
-            {/* 선택 시 혜택 안내 */}
-            <div
-              className={cn(
-                "flex items-center gap-1.5 text-xs font-medium mt-auto pt-2 border-t border-border/30 w-full",
-                isSelected ? colors.text : "text-muted-foreground",
-              )}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>이 분야 맞춤 질문 생성</span>
-            </div>
-          </motion.button>
-        );
-      })}
-    </div>
+                  {/* 설명 */}
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {type.description}
+                  </p>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
-// 선택된 면접 범주를 배지로 표시하는 컴포넌트
+// ── 검색창 내부에 표시되는 선택된 면접 범주 Pill ──
+interface SelectedInterviewTypePillProps {
+  type: StaticInterviewType;
+  onRemove: () => void;
+}
+
+export function SelectedInterviewTypePill({
+  type,
+  onRemove,
+}: SelectedInterviewTypePillProps) {
+  const IconComponent = ICON_MAP[type.icon] ?? Brain;
+  const colors = COLOR_MAP[type.color] ?? COLOR_MAP.blue;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs font-medium border",
+        colors.bgLight,
+        colors.border,
+        colors.text,
+      )}
+    >
+      <IconComponent className="w-3 h-3 flex-shrink-0" />
+      <span>{type.displayName}</span>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        className={cn(
+          "ml-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-colors",
+          "hover:bg-black/10",
+        )}
+        aria-label={`${type.displayName} 제거`}
+      >
+        <X className="w-2.5 h-2.5" />
+      </button>
+    </span>
+  );
+}
+
+// ── 선택된 면접 범주를 배지로 표시하는 컴포넌트 (아카이브 등에서 사용) ──
 interface InterviewTypeBadgeProps {
-  type: ApiInterviewType;
+  type: { displayName: string; icon: string | null; color: string | null };
   size?: "sm" | "md";
 }
 
@@ -220,8 +266,8 @@ export function InterviewTypeBadge({
   type,
   size = "sm",
 }: InterviewTypeBadgeProps) {
-  const IconComponent = ICON_MAP[type.icon || "Brain"] || Brain;
-  const colors = COLOR_MAP[type.color || "blue"] || COLOR_MAP.blue;
+  const IconComponent = ICON_MAP[type.icon ?? "Brain"] ?? Brain;
+  const colors = COLOR_MAP[type.color ?? "blue"] ?? COLOR_MAP.blue;
 
   return (
     <span

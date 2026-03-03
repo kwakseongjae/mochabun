@@ -365,7 +365,7 @@ export async function createSessionApi(
     category: string;
     questionId?: string;
   }>,
-  interviewTypeId?: string | null,
+  interviewTypeCode?: string | null,
 ): Promise<{ session: { id: string; created_at: string } }> {
   const questionIds = questions
     .map((q) => q.questionId)
@@ -381,7 +381,7 @@ export async function createSessionApi(
         hint: q.hint,
         category: q.category,
       })),
-      interview_type_id: interviewTypeId || undefined,
+      interview_type_code: interviewTypeCode || undefined,
     }),
   });
 }

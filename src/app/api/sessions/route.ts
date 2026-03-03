@@ -227,7 +227,18 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     let { query, question_ids, questions: questionsData } = body;
-    const { interview_type_id } = body;
+    const { interview_type_code } = body;
+
+    // interview_type_code → interview_type_id (UUID) 조회
+    let interview_type_id: string | null = null;
+    if (interview_type_code) {
+      const { data: interviewType } = await supabaseAdmin
+        .from("interview_types")
+        .select("id")
+        .eq("code", interview_type_code)
+        .single();
+      interview_type_id = interviewType?.id ?? null;
+    }
 
     // 입력 검증 및 길이 제한
     query = query?.slice(0, 500)?.trim() || null; // 최대 500자

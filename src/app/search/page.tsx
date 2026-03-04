@@ -338,6 +338,12 @@ function SearchContent() {
       return;
     }
 
+    // 데모 모드: API 호출 없이 로컬 상태만 토글
+    if (isDemoMode) {
+      setFavorites((prev) => ({ ...prev, [question.id]: !prev[question.id] }));
+      return;
+    }
+
     try {
       const isFav = await toggleFavoriteApi(question.id, {
         content: question.content,
@@ -496,7 +502,10 @@ function SearchContent() {
         interviewTypeCode,
       );
 
-      router.push(`/interview?session=${sessionData.session.id}`);
+      const interviewUrl = isDemoMode
+        ? `/interview?session=${sessionData.session.id}&demo=true`
+        : `/interview?session=${sessionData.session.id}`;
+      router.push(interviewUrl);
     } catch (error) {
       console.error("세션 생성 오류:", error);
       alert("세션 생성에 실패했습니다. 다시 시도해주세요.");
@@ -892,7 +901,7 @@ function SearchContent() {
                         이 질문으로 기술면접을 준비할까요?
                       </h3>
                       <p className="text-primary-foreground/70 text-sm">
-                        각 질문당 3분씩, 총 {questions.length * 3}분 소요 예상
+                        각 질문당 5분씩, 총 {questions.length * 5}분 소요 예상
                       </p>
                     </div>
                     <Button

@@ -21,7 +21,7 @@ interface UseTimerReturn {
   percentage: number;
 }
 
-const DEFAULT_TIME = 180; // 3 minutes
+const DEFAULT_TIME = 300; // 5 minutes
 
 export function useTimer({
   initialTime = DEFAULT_TIME,

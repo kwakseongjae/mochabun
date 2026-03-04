@@ -46,7 +46,7 @@
     "voyageai": "^0.1.0"
   },
   "overrides": {
-    "minimatch": "^10.2.1",
+    "minimatch": "^10.2.3",
     "voyageai": {
       "qs": "^6.14.1"
     }
@@ -57,7 +57,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
-    "clipwise": "^0.2.0",
+    "clipwise": "^0.5.1",
     "eslint": "^9",
     "eslint-config-next": "^16.1.0",
     "postcss": "^8",

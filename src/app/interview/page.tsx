@@ -53,6 +53,9 @@ function InterviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get("session");
+  const isDemoMode =
+    searchParams.get("demo") === "true" &&
+    process.env.NODE_ENV !== "production";
 
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -69,12 +72,13 @@ function InterviewContent() {
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 질문별 카운트다운 타이머 (3분)
-  const questionTimer = useTimer({ initialTime: 180 });
+  // 질문별 카운트다운 타이머 (기본 5분)
+  const [selectedTimerDuration, setSelectedTimerDuration] = useState(300);
+  const questionTimer = useTimer({ initialTime: selectedTimerDuration });
   const timerColor =
-    questionTimer.time > 60
+    questionTimer.percentage > 40
       ? "text-timer-safe"
-      : questionTimer.time > 30
+      : questionTimer.percentage > 20
         ? "text-timer-warning"
         : "text-timer-danger";
 
@@ -229,11 +233,11 @@ function InterviewContent() {
     loadSession();
   }, [sessionId, router, loadFromLocal]);
 
-  // 질문 변경 시 카운트다운 타이머 리셋
+  // 질문 변경 또는 타이머 시간 변경 시 카운트다운 타이머 리셋
   useEffect(() => {
-    questionTimer.reset(180);
+    questionTimer.reset(selectedTimerDuration);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, selectedTimerDuration]);
 
   // Track total time - 안정적인 타이머 로직
   useEffect(() => {
@@ -339,6 +343,15 @@ function InterviewContent() {
     // 로그인한 유저만 찜하기 가능
     if (!isLoggedIn()) {
       alert("찜하기 기능은 로그인이 필요합니다.");
+      return;
+    }
+
+    // 데모 모드: API 호출 없이 로컬 상태만 토글
+    if (isDemoMode) {
+      const updatedQuestions = session.questions.map((q) =>
+        q.id === currentQuestion.id ? { ...q, isFavorite: !q.isFavorite } : q,
+      );
+      setSession({ ...session, questions: updatedQuestions });
       return;
     }
 
@@ -488,7 +501,7 @@ function InterviewContent() {
             />
           </Link>
 
-          {/* Total Time & Auto-save indicator */}
+          {/* Timer & Total Time & Auto-save indicator */}
           <div className="flex items-center gap-4">
             {isRestoredFromLocal ? (
               <div className="flex items-center gap-1.5 text-xs text-gold animate-pulse">
@@ -501,8 +514,67 @@ function InterviewContent() {
                 <span className="hidden sm:inline">자동 저장됨</span>
               </div>
             ) : null}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>소요 시간</span>
+
+            {/* Question Timer */}
+            <div className="flex items-center gap-2 border-l border-border pl-4">
+              {!questionTimer.isRunning &&
+                questionTimer.time === selectedTimerDuration && (
+                  <div className="flex items-center gap-0.5">
+                    {[5, 10].map((min) => (
+                      <button
+                        key={min}
+                        onClick={() => setSelectedTimerDuration(min * 60)}
+                        className={`px-1.5 py-0.5 rounded text-xs transition-colors ${
+                          selectedTimerDuration === min * 60
+                            ? "bg-navy text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {min}분
+                      </button>
+                    ))}
+                  </div>
+                )}
+              <Timer className={`w-3.5 h-3.5 ${timerColor}`} />
+              <span
+                className={`font-mono text-sm font-medium tabular-nums ${timerColor} ${
+                  questionTimer.percentage <= 10 && questionTimer.isRunning
+                    ? "timer-pulse"
+                    : ""
+                }`}
+              >
+                {questionTimer.formatTime()}
+              </span>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={
+                    questionTimer.isRunning
+                      ? questionTimer.pause
+                      : questionTimer.start
+                  }
+                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label={
+                    questionTimer.isRunning ? "타이머 일시정지" : "타이머 시작"
+                  }
+                >
+                  {questionTimer.isRunning ? (
+                    <Pause className="w-3 h-3" />
+                  ) : (
+                    <Play className="w-3 h-3" />
+                  )}
+                </button>
+                <button
+                  onClick={() => questionTimer.reset(selectedTimerDuration)}
+                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label="타이머 초기화"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground border-l border-border pl-4">
+              <span>소요</span>
               <span className="font-mono font-medium text-foreground tabular-nums">
                 {formatSeconds(totalElapsedTime)}
               </span>
@@ -636,63 +708,6 @@ function InterviewContent() {
                       }`}
                     />
                   </button>
-                </div>
-
-                {/* Question Timer */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <Timer className={`w-4 h-4 ${timerColor}`} />
-                    <span
-                      className={`font-mono text-lg font-semibold tabular-nums ${timerColor} ${
-                        questionTimer.time <= 30 && questionTimer.isRunning
-                          ? "timer-pulse"
-                          : ""
-                      }`}
-                    >
-                      {questionTimer.formatTime()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={
-                        questionTimer.isRunning
-                          ? questionTimer.pause
-                          : questionTimer.start
-                      }
-                      className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                      aria-label={
-                        questionTimer.isRunning
-                          ? "타이머 일시정지"
-                          : "타이머 시작"
-                      }
-                    >
-                      {questionTimer.isRunning ? (
-                        <Pause className="w-3.5 h-3.5" />
-                      ) : (
-                        <Play className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => questionTimer.reset(180)}
-                      className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                      aria-label="타이머 초기화"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-1000 ${
-                        questionTimer.time > 60
-                          ? "bg-timer-safe"
-                          : questionTimer.time > 30
-                            ? "bg-timer-warning"
-                            : "bg-timer-danger"
-                      }`}
-                      style={{ width: `${questionTimer.percentage}%` }}
-                    />
-                  </div>
                 </div>
 
                 {/* Answer Textarea */}

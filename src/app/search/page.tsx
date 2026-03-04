@@ -338,6 +338,12 @@ function SearchContent() {
       return;
     }
 
+    // 데모 모드: API 호출 없이 로컬 상태만 토글
+    if (isDemoMode) {
+      setFavorites((prev) => ({ ...prev, [question.id]: !prev[question.id] }));
+      return;
+    }
+
     try {
       const isFav = await toggleFavoriteApi(question.id, {
         content: question.content,
@@ -496,7 +502,10 @@ function SearchContent() {
         interviewTypeCode,
       );
 
-      router.push(`/interview?session=${sessionData.session.id}`);
+      const interviewUrl = isDemoMode
+        ? `/interview?session=${sessionData.session.id}&demo=true`
+        : `/interview?session=${sessionData.session.id}`;
+      router.push(interviewUrl);
     } catch (error) {
       console.error("세션 생성 오류:", error);
       alert("세션 생성에 실패했습니다. 다시 시도해주세요.");

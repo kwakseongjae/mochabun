@@ -12,6 +12,8 @@ effects:
     speed: "fast"
     clickEffect: true
     clickColor: "rgba(59, 130, 246, 0.3)"
+    trail: true
+    trailLength: 5
     highlight: true
     highlightRadius: 30
   background:
@@ -24,13 +26,30 @@ effects:
     enabled: true
     type: browser
     darkMode: true
+  zoom:
+    enabled: true
+    intensity: subtle
+    autoZoom:
+      followCursor: false
+      transitionDuration: 300
+      padding: 200
+  speedRamp:
+    enabled: true
+    idleSpeed: 2.0
+    actionSpeed: 0.9
+  keystroke:
+    enabled: true
+    showTyping: true
+    position: bottom-center
+    fontSize: 14
+    fadeAfter: 1200
 
 output:
   format: mp4
   width: 1280
   height: 800
-  fps: 24
-  quality: 80
+  fps: 30
+  preset: archive
 
 steps:
   # ===== Auto Login (demo mode) =====
@@ -40,29 +59,43 @@ steps:
         url: "http://localhost:3000/api/demo-auth?next=/%3Fdemo%3Dtrue"
         waitUntil: "networkidle"
       - action: wait
-        duration: 1500
+        duration: 1000
     captureDelay: 200
-    holdDuration: 800
+    holdDuration: 600
 
   # ===== Homepage =====
   - name: "Wait for homepage"
     actions:
       - action: waitForSelector
-        selector: ".grid-cols-3 button"
+        selector: "textarea[aria-label='면접 유형 검색']"
         state: visible
         timeout: 15000
+      - action: wait
+        duration: 300
     captureDelay: 100
-    holdDuration: 300
+    holdDuration: 500
 
-  - name: "Select system design category"
+  # ===== Interview Category: Click Popover Trigger =====
+  - name: "Open interview category popover"
     actions:
       - action: click
-        selector: ".grid-cols-3 button:nth-child(3)"
-        timeout: 10000
+        selector: "button:has-text('면접 범주')"
+        timeout: 5000
         delay: 200
     captureDelay: 200
-    holdDuration: 600
+    holdDuration: 400
 
+  # ===== Interview Category: Select System Design =====
+  - name: "Select system design from popover"
+    actions:
+      - action: click
+        selector: "button:has-text('시스템 설계')"
+        timeout: 5000
+        delay: 200
+    captureDelay: 200
+    holdDuration: 500
+
+  # ===== Type Interview Query =====
   - name: "Type interview query"
     actions:
       - action: click
@@ -73,8 +106,9 @@ steps:
         text: "대용량 트래픽 처리 면접 준비해줘."
         delay: 40
     captureDelay: 100
-    holdDuration: 600
+    holdDuration: 500
 
+  # ===== Submit =====
   - name: "Submit query"
     actions:
       - action: click
@@ -83,43 +117,49 @@ steps:
     captureDelay: 100
     holdDuration: 300
 
-  # ===== Search Results Page (demo mode: no AI call) =====
-  - name: "Wait for search page"
+  # ===== Search Results Page =====
+  - name: "Wait for questions to appear"
     actions:
       - action: waitForURL
         url: "**/search**"
         timeout: 15000
-    captureDelay: 100
-    holdDuration: 200
-
-  - name: "Wait for questions to appear"
-    actions:
       - action: waitForSelector
         selector: ".divide-y"
         state: visible
         timeout: 10000
       - action: wait
-        duration: 500
+        duration: 400
     captureDelay: 200
-    holdDuration: 2000
+    holdDuration: 1000
 
-  - name: "Scroll to see questions"
+  - name: "Scroll to see all questions"
     actions:
       - action: scroll
-        y: 250
+        y: 300
         smooth: true
     captureDelay: 200
-    holdDuration: 1200
+    holdDuration: 800
 
+  # ===== 찜하기 on search results =====
+  - name: "Favorite first question"
+    actions:
+      - action: click
+        selector: "button[aria-label='찜하기']"
+        timeout: 5000
+        delay: 300
+    captureDelay: 200
+    holdDuration: 600
+
+  # ===== Scroll to start button =====
   - name: "Scroll to start button"
     actions:
       - action: waitForFunction
         expression: "document.querySelector('button.bg-gold')?.scrollIntoView({behavior:'smooth',block:'center'}) || true"
         timeout: 10000
       - action: wait
-        duration: 800
+        duration: 600
     captureDelay: 200
-    holdDuration: 600
+    holdDuration: 400
 
   - name: "Click start interview"
     actions:
@@ -141,7 +181,7 @@ steps:
         state: visible
         timeout: 30000
     captureDelay: 300
-    holdDuration: 1000
+    holdDuration: 800
 
   - name: "Write answer"
     actions:
@@ -153,8 +193,19 @@ steps:
         text: "로드 밸런서로 트래픽 분산, Redis 캐시로 DB 부하 감소, CDN으로 정적 리소스 엣지 제공, Kafka 메시지 큐로 비동기 처리를 구현합니다."
         delay: 25
     captureDelay: 100
-    holdDuration: 800
+    holdDuration: 600
 
+  # ===== 찜하기 on interview page =====
+  - name: "Favorite current question"
+    actions:
+      - action: click
+        selector: "button[aria-label='찜하기']"
+        timeout: 5000
+        delay: 300
+    captureDelay: 200
+    holdDuration: 500
+
+  # ===== Show Hint =====
   - name: "Show hint"
     actions:
       - action: click
@@ -162,5 +213,25 @@ steps:
         timeout: 5000
         delay: 200
     captureDelay: 200
-    holdDuration: 2000
+    holdDuration: 1200
     transition: fade
+
+  # ===== Close hint & scroll up =====
+  - name: "Close hint"
+    actions:
+      - action: click
+        selector: "button[aria-controls='hint-content']"
+        timeout: 5000
+        delay: 300
+    captureDelay: 200
+    holdDuration: 400
+
+  - name: "Scroll to top of interview"
+    actions:
+      - action: scroll
+        y: -400
+        smooth: true
+      - action: wait
+        duration: 400
+    captureDelay: 200
+    holdDuration: 800

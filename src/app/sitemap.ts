@@ -1,10 +1,9 @@
 import type { MetadataRoute } from "next";
 import { supabaseAdmin } from "@/lib/supabase";
-import { TREND_TOPICS } from "@/data/trend-topics";
 import { SITE_URL } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // Static pages
+  // Static pages (public only — auth-required pages excluded)
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
@@ -19,18 +18,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${SITE_URL}/interview`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/archive`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
       url: `${SITE_URL}/case-studies`,
       lastModified: new Date(),
       changeFrequency: "weekly",
@@ -43,22 +30,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/favorites`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.6,
-    },
-    {
-      url: `${SITE_URL}/team-spaces/new`,
+      url: `${SITE_URL}/faq`,
       lastModified: new Date(),
       changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${SITE_URL}/auth`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.3,
+      priority: 0.7,
     },
     {
       url: `${SITE_URL}/privacy`,
@@ -91,13 +66,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Silently skip if DB unavailable during build
   }
 
-  // Dynamic: Trend topic pages
-  const trendPages: MetadataRoute.Sitemap = TREND_TOPICS.map((topic) => ({
-    url: `${SITE_URL}/trends?topic=${topic.id}`,
-    lastModified: new Date(topic.addedDate),
-    changeFrequency: "monthly" as const,
-    priority: topic.relevance === "critical" ? 0.7 : 0.6,
-  }));
-
-  return [...staticPages, ...caseStudyPages, ...trendPages];
+  return [...staticPages, ...caseStudyPages];
 }

@@ -237,7 +237,7 @@
 
 ---
 
-**마지막 업데이트**: 2026-03-04
+**마지막 업데이트**: 2026-03-11
 
 ---
 
@@ -268,3 +268,15 @@
 - **원인**: 로직(useTimer.ts) 변경 시 UI 텍스트에 하드코딩된 동일 값을 함께 확인하지 않음
 - **규칙**: 기본값/상수 변경 시 반드시 `grep`으로 관련 텍스트 문자열도 검색하여 일괄 수정
 - **참조**: #47, `src/app/search/page.tsx`
+
+---
+
+### 2026-03-11: [SEO] Search Console 문제 분석 시 클라이언트/서버 리디렉션 구분 필수
+
+- **실수**: "리디렉션이 포함된 페이지" 원인을 인증 페이지의 클라이언트 사이드 리디렉션(`router.push`, `window.location.href`)으로 추정했으나, 이는 Googlebot이 감지하지 못하는 JS 리디렉션임. 실제 원인은 Vercel non-www → www 307 HTTP 리디렉션
+- **원인**: `"use client"` 페이지의 JS 리디렉션과 HTTP 3xx 서버 리디렉션을 혼동
+- **규칙**:
+  - Search Console "리디렉션 포함 페이지"는 **HTTP 3xx 리디렉션**만 해당 (클라이언트 JS 리디렉션은 포함되지 않음)
+  - 문제 분석 시 Vercel 도메인 설정(307/308), middleware redirect, next.config redirects 등 **서버 레벨 리디렉션**부터 확인
+  - `"use client"` 컴포넌트의 `router.push`/`window.location.href`는 Googlebot에게 투명 (200 HTML 반환)
+- **참조**: #52, Vercel Dashboard → Domains

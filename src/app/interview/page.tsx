@@ -504,9 +504,9 @@ function InterviewContent() {
           {/* Timer & Total Time & Auto-save indicator */}
           <div className="flex items-center gap-4">
             {isRestoredFromLocal ? (
-              <div className="flex items-center gap-1.5 text-xs text-gold animate-pulse">
-                <CloudCheck className="w-3.5 h-3.5" />
-                <span>진행상황 복원됨</span>
+              <div className="flex items-center gap-1 text-xs text-gold animate-pulse">
+                <CloudCheck className="w-3 h-3" />
+                <span className="hidden sm:inline">복원됨</span>
               </div>
             ) : lastSavedAt ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -587,7 +587,7 @@ function InterviewContent() {
         {/* Sidebar */}
         <aside className="hidden md:flex w-64 flex-col border-r border-border bg-card/50">
           <div className="p-4">
-            <h2 className="font-display text-lg font-semibold mb-1">
+            <h2 className="font-display text-base md:text-lg font-semibold mb-1">
               질문 목록
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -641,7 +641,7 @@ function InterviewContent() {
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full bg-gold hover:bg-gold-light text-navy font-semibold"
+              className="w-full bg-navy hover:bg-navy-light text-white font-semibold"
               size="lg"
             >
               {isSubmitting ? (
@@ -667,31 +667,23 @@ function InterviewContent() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                className="space-y-4"
               >
                 {/* Question Header */}
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline">
-                        {currentQuestion.category}
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{currentQuestion.category}</Badge>
+                    {currentQuestion.isTrending && (
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-50 text-amber-700 border-amber-200"
+                      >
+                        트렌드
                       </Badge>
-                      {currentQuestion.isTrending && (
-                        <Badge
-                          variant="outline"
-                          className="bg-amber-50 text-amber-700 border-amber-200"
-                        >
-                          트렌드
-                        </Badge>
-                      )}
-                      <span className="text-sm text-muted-foreground">
-                        질문 {currentQuestionIndex + 1}/
-                        {session.questions.length}
-                      </span>
-                    </div>
-                    <h1 className="font-display text-2xl md:text-3xl font-semibold leading-snug">
-                      {currentQuestion.content}
-                    </h1>
+                    )}
+                    <span className="text-sm text-muted-foreground">
+                      질문 {currentQuestionIndex + 1}/{session.questions.length}
+                    </span>
                   </div>
                   <button
                     onClick={handleToggleFavorite}
@@ -701,7 +693,7 @@ function InterviewContent() {
                     }
                   >
                     <Heart
-                      className={`w-6 h-6 transition-colors ${
+                      className={`w-5 h-5 transition-colors ${
                         currentQuestion.isFavorite
                           ? "fill-red-500 text-red-500"
                           : "text-muted-foreground hover:text-red-400"
@@ -709,6 +701,9 @@ function InterviewContent() {
                     />
                   </button>
                 </div>
+                <h1 className="font-display text-lg md:text-xl font-semibold leading-snug pl-1">
+                  {currentQuestion.content}
+                </h1>
 
                 {/* Answer Textarea */}
                 <Card className="p-1">
@@ -771,7 +766,7 @@ function InterviewContent() {
                     <Button
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="gap-2 bg-gold hover:bg-gold-light text-navy"
+                      className="gap-2 bg-navy hover:bg-navy-light text-white"
                     >
                       {isSubmitting ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -799,7 +794,7 @@ function InterviewContent() {
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full bg-gold hover:bg-gold-light text-navy font-semibold"
+              className="w-full bg-navy hover:bg-navy-light text-white font-semibold"
             >
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

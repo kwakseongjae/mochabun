@@ -565,7 +565,7 @@ function SearchContent() {
             <p className="text-muted-foreground text-sm">검색어</p>
             {interviewType && <InterviewTypeBadge type={interviewType} />}
           </div>
-          <h1 className="font-display text-2xl md:text-3xl font-semibold">
+          <h1 className="font-display text-xl md:text-2xl font-semibold">
             &ldquo;{query}&rdquo;
           </h1>
         </motion.div>

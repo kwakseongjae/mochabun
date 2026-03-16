@@ -247,7 +247,7 @@ function CompleteContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="font-display text-4xl md:text-5xl font-semibold mb-4"
+          className="font-display text-3xl md:text-4xl font-semibold mb-4"
         >
           제출 완료!
         </motion.h1>
@@ -279,7 +279,7 @@ function CompleteContent() {
                   <Clock className="w-4 h-4" />
                   <span className="text-sm">소요 시간</span>
                 </div>
-                <p className="font-display text-2xl font-semibold">
+                <p className="font-display text-xl font-semibold">
                   {formatSecondsKorean(session?.totalTime || 0)}
                 </p>
               </div>
@@ -288,7 +288,7 @@ function CompleteContent() {
                   <CheckCircle2 className="w-4 h-4" />
                   <span className="text-sm">답변 완료</span>
                 </div>
-                <p className="font-display text-2xl font-semibold">
+                <p className="font-display text-xl font-semibold">
                   {answeredCount}/{totalQuestions}
                 </p>
               </div>

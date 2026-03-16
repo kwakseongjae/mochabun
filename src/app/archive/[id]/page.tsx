@@ -337,7 +337,7 @@ export default function ArchiveDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="font-display text-2xl md:text-3xl font-semibold mb-3">
+          <h1 className="font-display text-xl md:text-2xl font-semibold mb-3">
             {session.query}
           </h1>
 
